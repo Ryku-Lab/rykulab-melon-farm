@@ -11,6 +11,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- MQTT.js untuk EMQX WebSocket -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <!-- Firebase App & Realtime Database Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Google Fonts: Plus Jakarta Sans, DM Sans, JetBrains Mono -->
@@ -264,6 +267,14 @@
 
       <!-- Right: MQTT Pill, Sync, Explicit Save, Theme, Role -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <button onclick="switchTab('pengaturan')" title="Status Cloud Sync HP &amp; Laptop (Firebase)" class="hidden sm:flex items-center gap-2 px-2.5 h-9 rounded-xl bg-black/30 border border-white/10 hover:border-emerald-400/50 transition text-left">
+          <span id="header-fb-dot" class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+          <div class="leading-tight">
+            <div class="text-[10px] font-mono font-semibold text-emerald-300">CLOUD SYNC</div>
+            <div id="header-fb-sub" class="text-[10px] text-stone-300/80">Lokal (Offline)</div>
+          </div>
+        </button>
+
         <button onclick="switchTab('iot')" title="Buka Monitoring IoT" class="hidden md:flex items-center gap-2 px-3 h-9 rounded-xl bg-black/30 border border-white/10 hover:border-emerald-400/50 transition text-left">
           <span id="header-conn-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
           <div class="leading-tight">
@@ -1545,10 +1556,45 @@
                 </div>
                 <div>
                   <h3 class="font-display font-bold text-base txt-main">Simpan, Backup &amp; Reset ke Nol</h3>
-                  <p class="text-xs txt-muted">Sinkronkan data antar HP &amp; Laptop via Backup JSON atau bersihkan siklus ke 0.</p>
+                  <p class="text-xs txt-muted">Sinkronkan data antar HP &amp; Laptop via Cloud Firebase atau Backup JSON.</p>
                 </div>
               </div>
               <span id="settings-save-badge" class="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg paper-sub txt-accent">Tersimpan</span>
+            </div>
+
+            <!-- Firebase Realtime Database Auto-Sync Panel -->
+            <div class="p-4 rounded-xl paper-sub border border-hair space-y-3">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-cloud-arrow-up txt-accent"></i>
+                  <span class="text-xs font-bold txt-main">Auto-Sync Cloud Real-Time (HP &amp; Laptop)</span>
+                </div>
+                <span id="fb-sync-badge" class="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-500/15 txt-muted">Belum Terhubung</span>
+              </div>
+              <p class="text-[11px] txt-sec leading-relaxed">
+                Tempelkan <strong>URL Firebase Realtime Database</strong> Anda (contoh: <code class="font-mono">https://kebun-melon-default-rtdb.asia-southeast1.firebasedatabase.app</code>) dan <strong>ID Kebun</strong> yang sama di HP maupun Laptop. Setiap perubahan akan langsung tersinkron otomatis.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                <div class="sm:col-span-8">
+                  <label class="block text-[10px] font-bold uppercase txt-muted mb-1" for="fb-db-url">URL Firebase Realtime Database</label>
+                  <input type="url" id="fb-db-url" placeholder="https://nama-project-default-rtdb.firebaseio.com" class="field-input w-full px-3 py-2 font-mono text-xs" />
+                </div>
+                <div class="sm:col-span-4">
+                  <label class="block text-[10px] font-bold uppercase txt-muted mb-1" for="fb-farm-id">ID / Kode Kebun</label>
+                  <input type="text" id="fb-farm-id" placeholder="rykulab_kebun_01" class="field-input w-full px-3 py-2 font-mono text-xs" />
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                <button onclick="connectFirebaseSync(true)" class="px-3.5 py-2 rounded-xl btn-primary text-xs font-bold flex items-center gap-1.5">
+                  <i class="fa-solid fa-link"></i> Hubungkan &amp; Auto-Sync
+                </button>
+                <button onclick="pushStateToFirebase(true)" class="px-3 py-2 rounded-xl btn-ghost text-xs font-semibold flex items-center gap-1.5">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data ke Cloud
+                </button>
+                <button onclick="disconnectFirebaseSync()" class="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs font-semibold">
+                  Putuskan
+                </button>
+              </div>
             </div>
 
             <div class="flex flex-wrap gap-2.5">
@@ -2007,6 +2053,7 @@
     // 1. CONSTANTS, STORAGE & DEFAULT DATA (DEFAULT SYSTEM = NFT)
     // =========================================================================
     const STORAGE_KEY = 'rykulab_hydro_farm_v5';
+    const FB_CONFIG_KEY = 'rykulab_fb_sync_cfg_v1';
     const THEME_STORAGE_KEY = 'ryku_hydro_theme';
     const DEFAULT_BG_URL = 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=1600&q=80';
 
@@ -2136,6 +2183,14 @@
     let hasUnsavedChanges = false;
     let pendingConfirmCallback = null;
 
+    // Firebase Realtime Database Cloud Sync State
+    let fbAppInstance = null;
+    let fbDbRef = null;
+    let fbConnected = false;
+    let isApplyingRemoteSync = false;
+    let fbPushTimer = null;
+    let lastSyncedPayloadHash = '';
+
     // SCADA Telemetry State (100% ESP32 Key Mapping)
     let mqttClient = null;
     let mqttConnected = false;
@@ -2248,9 +2303,212 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
         hasUnsavedChanges = false;
         updateSaveStatusUI();
+        if (fbConnected && !isApplyingRemoteSync) {
+          scheduleFirebasePush();
+        }
       } catch (e) {
         showToast('Penyimpanan browser penuh! Gunakan tombol Unduh Backup (.json).');
       }
+    }
+
+    // =========================================================================
+    // 2B. FIREBASE REALTIME DATABASE AUTO-SYNC (HP <-> LAPTOP)
+    // =========================================================================
+    function loadFirebaseConfig() {
+      try {
+        const raw = localStorage.getItem(FB_CONFIG_KEY);
+        if (!raw) return { dbUrl: '', farmId: 'rykulab_kebun_01', enabled: false };
+        const parsed = JSON.parse(raw);
+        return {
+          dbUrl: (parsed.dbUrl || '').trim(),
+          farmId: (parsed.farmId || 'rykulab_kebun_01').trim(),
+          enabled: Boolean(parsed.enabled)
+        };
+      } catch (e) {
+        return { dbUrl: '', farmId: 'rykulab_kebun_01', enabled: false };
+      }
+    }
+
+    function saveFirebaseConfig(cfg) {
+      localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+    }
+
+    function updateFirebaseStatusUI(status, text) {
+      const hDot = document.getElementById('header-fb-dot');
+      const hSub = document.getElementById('header-fb-sub');
+      const badge = document.getElementById('fb-sync-badge');
+
+      if (status === 'connected') {
+        if (hDot) hDot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+        if (hSub) hSub.textContent = text || 'Live Sync Aktif';
+        if (badge) {
+          badge.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/15 txt-accent';
+          badge.textContent = text || 'Terhubung (Auto-Sync Live)';
+        }
+      } else if (status === 'connecting') {
+        if (hDot) hDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0';
+        if (hSub) hSub.textContent = text || 'Menghubungkan...';
+        if (badge) {
+          badge.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-500/15 txt-ochre';
+          badge.textContent = text || 'Menghubungkan Cloud...';
+        }
+      } else if (status === 'error') {
+        if (hDot) hDot.className = 'w-2 h-2 rounded-full bg-rose-400 shrink-0';
+        if (hSub) hSub.textContent = text || 'Gagal Sync';
+        if (badge) {
+          badge.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-rose-500/15 text-rose-500';
+          badge.textContent = text || 'Gagal Terhubung';
+        }
+      } else {
+        if (hDot) hDot.className = 'w-2 h-2 rounded-full bg-slate-400 shrink-0';
+        if (hSub) hSub.textContent = 'Lokal (Offline)';
+        if (badge) {
+          badge.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-500/15 txt-muted';
+          badge.textContent = 'Belum Terhubung';
+        }
+      }
+    }
+
+    function buildCloudSyncPayload() {
+      const clone = JSON.parse(JSON.stringify(appState));
+      // Jangan timpa status login sesi & foto base64 besar ke node utama jika tidak perlu
+      delete clone.isAdmin;
+      return clone;
+    }
+
+    function scheduleFirebasePush() {
+      clearTimeout(fbPushTimer);
+      fbPushTimer = setTimeout(() => pushStateToFirebase(false), 450);
+    }
+
+    function pushStateToFirebase(manualNotify = false) {
+      if (!fbDbRef) {
+        if (manualNotify) showToast('Hubungkan URL Firebase Realtime Database terlebih dahulu.');
+        return;
+      }
+      const payload = buildCloudSyncPayload();
+      payload._updatedAt = Date.now();
+      const hashCheck = JSON.stringify({ ...payload, _updatedAt: 0, lastSavedAt: '' });
+      lastSyncedPayloadHash = hashCheck;
+
+      fbDbRef.set(payload)
+        .then(() => {
+          updateFirebaseStatusUI('connected', `Tersinkron • ${formatTimeNow()}`);
+          if (manualNotify) showToast('Data berhasil dikirim ke Firebase Cloud.');
+        })
+        .catch(err => {
+          updateFirebaseStatusUI('error', 'Izin Ditolak / Error');
+          if (manualNotify) showToast('Gagal kirim ke Firebase: periksa Rules (.read/.write: true) & URL.');
+        });
+    }
+
+    function connectFirebaseSync(isManual = false) {
+      const urlInput = document.getElementById('fb-db-url');
+      const idInput = document.getElementById('fb-farm-id');
+      const savedCfg = loadFirebaseConfig();
+
+      const rawUrl = (urlInput ? urlInput.value : savedCfg.dbUrl).trim().replace(/\/+$/, '');
+      const cleanFarmId = ((idInput ? idInput.value : savedCfg.farmId).trim() || 'rykulab_kebun_01').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      if (!rawUrl || !rawUrl.startsWith('https://')) {
+        if (isManual) showToast('Masukkan URL Firebase Realtime Database yang valid (diawali https://).');
+        return;
+      }
+      if (typeof firebase === 'undefined') {
+        if (isManual) showToast('SDK Firebase belum termuat (periksa koneksi internet).');
+        return;
+      }
+
+      if (urlInput) urlInput.value = rawUrl;
+      if (idInput) idInput.value = cleanFarmId;
+      saveFirebaseConfig({ dbUrl: rawUrl, farmId: cleanFarmId, enabled: true });
+
+      if (fbDbRef) {
+        try { fbDbRef.off(); } catch (e) {}
+        fbDbRef = null;
+      }
+
+      updateFirebaseStatusUI('connecting', 'Menghubungkan...');
+
+      try {
+        const appName = 'rykulab_sync_' + Math.random().toString(36).slice(2, 7);
+        fbAppInstance = firebase.initializeApp({ databaseURL: rawUrl }, appName);
+        const db = firebase.database(fbAppInstance);
+        fbDbRef = db.ref('rykulab_farms/' + cleanFarmId);
+
+        fbDbRef.on('value', snapshot => {
+          fbConnected = true;
+          const remoteData = snapshot.val();
+          if (!remoteData || typeof remoteData !== 'object') {
+            // Node cloud masih kosong: unggah data lokal saat ini sebagai data awal cloud
+            updateFirebaseStatusUI('connected', `Terhubung • ${cleanFarmId}`);
+            pushStateToFirebase(false);
+            if (isManual) showToast('Terhubung ke Firebase! Data lokal awal diunggah ke Cloud.');
+            return;
+          }
+
+          const remoteHash = JSON.stringify({ ...remoteData, _updatedAt: 0, lastSavedAt: '' });
+          if (remoteHash === lastSyncedPayloadHash) {
+            updateFirebaseStatusUI('connected', `Live • ${formatTimeNow()}`);
+            return;
+          }
+
+          lastSyncedPayloadHash = remoteHash;
+          isApplyingRemoteSync = true;
+          try {
+            const keepAdmin = appState.isAdmin;
+            appState = {
+              ...JSON.parse(JSON.stringify(DEFAULT_DATA)),
+              ...remoteData,
+              isAdmin: keepAdmin,
+              farmProfile: { ...DEFAULT_DATA.farmProfile, ...(remoteData.farmProfile || {}) },
+              instalasiSpec: { ...DEFAULT_DATA.instalasiSpec, ...(remoteData.instalasiSpec || {}) },
+              cycle: { ...DEFAULT_DATA.cycle, ...(remoteData.cycle || {}) },
+              iotSettings: { ...DEFAULT_DATA.iotSettings, ...(remoteData.iotSettings || {}) },
+              bgSettings: { ...DEFAULT_DATA.bgSettings, ...(remoteData.bgSettings || {}) },
+              abMixConfig: { ...DEFAULT_DATA.abMixConfig, ...(remoteData.abMixConfig || {}) },
+              sprayConfig: { ...DEFAULT_DATA.sprayConfig, ...(remoteData.sprayConfig || {}) },
+              varietas: Array.isArray(remoteData.varietas) ? remoteData.varietas : [],
+              pipaRows: Array.isArray(remoteData.pipaRows) ? remoteData.pipaRows : [],
+              abMixRecipe: Array.isArray(remoteData.abMixRecipe) ? remoteData.abMixRecipe : [],
+              sprayProtocol: Array.isArray(remoteData.sprayProtocol) ? remoteData.sprayProtocol : [],
+              transaksi: Array.isArray(remoteData.transaksi) ? remoteData.transaksi : [],
+              logSemprot: Array.isArray(remoteData.logSemprot) ? remoteData.logSemprot : []
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            syncProfileAndInstalasiInputs();
+            applyBackgroundSettings();
+            renderRoleUI();
+            recalculateAll();
+            updateSaveStatusUI();
+          } finally {
+            isApplyingRemoteSync = false;
+          }
+
+          updateFirebaseStatusUI('connected', `Sync Masuk • ${formatTimeNow()}`);
+          if (isManual) showToast('Auto-Sync Firebase aktif! Data HP & Laptop tersinkron.');
+        }, err => {
+          fbConnected = false;
+          updateFirebaseStatusUI('error', 'Akses Ditolak');
+          if (isManual) showToast('Gagal membaca Firebase: pastikan Realtime Database Rules mengizinkan read/write.');
+        });
+      } catch (e) {
+        fbConnected = false;
+        updateFirebaseStatusUI('error', 'URL Tidak Valid');
+        if (isManual) showToast('Gagal inisialisasi Firebase. Periksa format URL Database Anda.');
+      }
+    }
+
+    function disconnectFirebaseSync() {
+      if (fbDbRef) {
+        try { fbDbRef.off(); } catch (e) {}
+        fbDbRef = null;
+      }
+      fbConnected = false;
+      const cfg = loadFirebaseConfig();
+      saveFirebaseConfig({ ...cfg, enabled: false });
+      updateFirebaseStatusUI('offline');
+      showToast('Auto-Sync Firebase diputuskan (beralih ke penyimpanan lokal).');
     }
 
     function syncIotSettingsToState() {
@@ -4063,12 +4321,20 @@
       applyTheme(savedTheme);
       applyBackgroundSettings();
       syncProfileAndInstalasiInputs();
+
+      const fbCfg = loadFirebaseConfig();
+      if (document.getElementById('fb-db-url')) document.getElementById('fb-db-url').value = fbCfg.dbUrl || '';
+      if (document.getElementById('fb-farm-id')) document.getElementById('fb-farm-id').value = fbCfg.farmId || 'rykulab_kebun_01';
+
       renderRoleUI();
       recalculateAll();
       updateSaveStatusUI();
       updateTelemetryUI();
       updateTelemetryChart();
       connectMqttBroker();
+      if (fbCfg.enabled && fbCfg.dbUrl) {
+        connectFirebaseSync(false);
+      }
     };
   </script>
 </body>
