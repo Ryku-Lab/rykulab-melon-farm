@@ -204,6 +204,35 @@
       );
     }
 
+
+    /* Kalender Tanam & Pasaran Jawa */
+    .cal-cell {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-hair);
+      transition: all 0.14s ease;
+    }
+    .cal-cell:hover {
+      border-color: var(--accent-emerald);
+      transform: translateY(-1px);
+    }
+    .cal-cell.other-month {
+      opacity: 0.42;
+      background-color: var(--bg-sub);
+    }
+    .cal-cell.is-today {
+      border-color: var(--accent-ochre);
+      box-shadow: inset 0 0 0 1px var(--accent-ochre);
+    }
+    .cal-cell.selected {
+      background-color: rgba(15, 118, 84, 0.12);
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 2px rgba(15, 118, 84, 0.25);
+    }
+    html.dark .cal-cell.selected {
+      background-color: rgba(52, 211, 153, 0.16);
+      box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.30);
+    }
+
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(114, 132, 124, 0.35); border-radius: 999px; }
@@ -330,9 +359,26 @@
           <div class="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
             <div id="sidebar-hst-bar" class="h-full rounded-full bg-emerald-600 dark:bg-emerald-400 transition-all duration-300" style="width: 58%"></div>
           </div>
+          <div class="grid grid-cols-3 gap-1 pt-0.5 text-center font-mono">
+            <div class="rounded-lg bg-black/5 dark:bg-white/5 py-1 px-1">
+              <div class="text-[9px] txt-muted">HSS</div>
+              <div id="sidebar-hss-val" class="text-[11px] font-bold txt-main">-</div>
+            </div>
+            <div class="rounded-lg bg-emerald-600/15 py-1 px-1">
+              <div class="text-[9px] txt-accent">HST</div>
+              <div id="sidebar-hst-val" class="text-[11px] font-bold txt-accent">-</div>
+            </div>
+            <div class="rounded-lg bg-amber-500/15 py-1 px-1">
+              <div class="text-[9px] txt-ochre">HSP</div>
+              <div id="sidebar-hsp-val" class="text-[11px] font-bold txt-ochre">-</div>
+            </div>
+          </div>
           <div class="flex items-center justify-between text-[10px] font-mono txt-muted">
             <span id="sidebar-tanam-date">Tanam: -</span>
             <span id="sidebar-target-hst">Target: 65 HST</span>
+          </div>
+          <div id="sidebar-weton-today" class="text-[10px] font-mono txt-sec text-center pt-1 border-t border-hair">
+            Kalender Jawa: -
           </div>
         </div>
 
@@ -343,6 +389,14 @@
           <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left">
             <i class="fa-solid fa-chart-pie w-4 text-center"></i>
             <span>Dashboard Laporan</span>
+          </button>
+
+          <button onclick="switchTab('kalender')" data-tab="kalender" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-left">
+            <div class="flex items-center gap-3">
+              <i class="fa-solid fa-calendar-days w-4 text-center"></i>
+              <span>Kalender Tanam</span>
+            </div>
+            <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 txt-ochre">JAWA</span>
           </button>
 
           <button onclick="switchTab('varietas')" data-tab="varietas" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-left">
@@ -463,6 +517,9 @@
               <div class="flex flex-wrap items-center gap-2">
                 <button onclick="openTransaksiModal()" class="admin-only px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-[#071912] text-xs font-bold shadow flex items-center gap-2 transition">
                   <i class="fa-solid fa-plus"></i> Catat Belanja
+                </button>
+                <button onclick="switchTab('kalender')" class="px-3.5 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 backdrop-blur-md border border-amber-300/30 text-amber-100 text-xs font-semibold flex items-center gap-2 transition">
+                  <i class="fa-solid fa-calendar-days"></i> Kalender Jawa &amp; HST
                 </button>
                 <button onclick="switchTab('pengaturan')" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition">
                   <i class="fa-solid fa-image"></i> Foto &amp; Sistem
@@ -651,6 +708,190 @@
               <tbody id="dashboard-populasi-tbody" class="divide-y border-hair"></tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- TAB KALENDER: PERIODE TANAM (HSS • HST • HSP + KALENDER JAWA)       -->
+      <!-- =================================================================== -->
+      <section id="tab-kalender" class="tab-section hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display font-extrabold text-xl sm:text-2xl txt-main">Kalender Periode Tanam &amp; Penanggalan Jawa</h2>
+            <p class="text-xs sm:text-sm txt-muted">Pantau fase <strong>HSS</strong> (Semai), <strong>HST</strong> (Tanam), <strong>HSP</strong> (Polinasi), serta Pasaran Jawa. Klik tanggal untuk melihat rencana SOP &amp; update kegiatan.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="syncHstFromToday()" class="admin-only px-3.5 py-2 rounded-xl btn-ghost text-xs font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-clock-rotate-left"></i> Sinkron HST Hari Ini
+            </button>
+            <button onclick="openCalEntryModal('RENCANA')" class="admin-only px-3.5 py-2 rounded-xl btn-ochre text-xs font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-plus"></i> + Rencana
+            </button>
+            <button onclick="openCalEntryModal('KEGIATAN')" class="admin-only px-3.5 py-2 rounded-xl btn-primary text-xs font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-clipboard-check"></i> + Update Kegiatan
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KARTU STATUS FASE (JAWA • HSS • HST • HSP) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <!-- Card 1: Hari Ini & Kalender Jawa -->
+          <div class="paper-panel rounded-2xl p-4 space-y-2 border-l-4 border-l-amber-500">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider txt-muted">Kalender Jawa Hari Ini</span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/15 txt-ochre font-mono text-[10px] font-bold" id="cal-today-neptu">Neptu --</span>
+            </div>
+            <div id="cal-today-weton" class="font-display font-extrabold text-xl txt-main">-</div>
+            <div id="cal-today-masehi" class="text-xs font-mono txt-muted">-</div>
+          </div>
+
+          <!-- Card 2: HSS (Hari Setelah Semai) -->
+          <div class="paper-panel rounded-2xl p-4 space-y-2 border-l-4 border-l-sky-500">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider txt-muted">HSS (Setelah Semai)</span>
+              <span class="font-mono text-xs font-extrabold text-sky-600 dark:text-sky-400" id="cal-now-hss">0 HSS</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] txt-sec shrink-0" for="cal-tgl-semai">Tgl Semai:</label>
+              <input type="date" id="cal-tgl-semai" oninput="markUnsavedChanges()" onchange="updateMilestoneDatesFromCal()" class="admin-input field-input w-full px-2.5 py-1 text-xs font-mono" />
+            </div>
+            <div id="cal-semai-weton" class="text-[11px] font-mono txt-muted truncate">Pasaran Semai: -</div>
+          </div>
+
+          <!-- Card 3: HST (Hari Setelah Tanam) -->
+          <div class="paper-panel rounded-2xl p-4 space-y-2 border-l-4 border-l-emerald-600">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider txt-muted">HST (Setelah Tanam)</span>
+              <span class="font-mono text-xs font-extrabold txt-accent" id="cal-now-hst">0 HST</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] txt-sec shrink-0" for="cal-tgl-tanam">Tgl Tanam:</label>
+              <input type="date" id="cal-tgl-tanam" oninput="markUnsavedChanges()" onchange="updateMilestoneDatesFromCal()" class="admin-input field-input w-full px-2.5 py-1 text-xs font-mono" />
+            </div>
+            <div id="cal-tanam-weton" class="text-[11px] font-mono txt-muted truncate">Est. Panen: -</div>
+          </div>
+
+          <!-- Card 4: HSP (Hari Setelah Polinasi) -->
+          <div class="paper-panel rounded-2xl p-4 space-y-2 border-l-4 border-l-purple-500">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider txt-muted">HSP (Setelah Polinasi)</span>
+              <span class="font-mono text-xs font-extrabold text-purple-600 dark:text-purple-400" id="cal-now-hsp">0 HSP</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] txt-sec shrink-0" for="cal-tgl-polinasi">Polinasi:</label>
+              <input type="date" id="cal-tgl-polinasi" oninput="markUnsavedChanges()" onchange="updateMilestoneDatesFromCal()" class="admin-input field-input w-full px-2.5 py-1 text-xs font-mono" />
+            </div>
+            <div id="cal-polinasi-phase" class="text-[11px] font-mono txt-muted truncate">Fase Buah: -</div>
+          </div>
+        </div>
+
+        <!-- MAIN 2-COLUMN CALENDAR + DAILY DETAIL PANEL -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+          <!-- LEFT: MONTHLY CALENDAR GRID -->
+          <div class="paper-panel rounded-2xl p-4 sm:p-5 lg:col-span-7 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <button onclick="changeCalendarMonth(-1)" aria-label="Bulan Sebelumnya" class="w-8 h-8 rounded-lg btn-ghost flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <h3 id="cal-month-title" class="font-display font-extrabold text-base sm:text-lg txt-main min-w-[165px] text-center">November 2026</h3>
+                <button onclick="changeCalendarMonth(1)" aria-label="Bulan Berikutnya" class="w-8 h-8 rounded-lg btn-ghost flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button onclick="jumpCalendarTo('today')" class="px-2.5 py-1.5 rounded-lg btn-ghost text-[11px] font-semibold">Hari Ini</button>
+                <button onclick="jumpCalendarTo('tanam')" class="px-2.5 py-1.5 rounded-lg btn-ghost text-[11px] font-semibold">Tgl Tanam</button>
+                <button onclick="jumpCalendarTo('panen')" class="px-2.5 py-1.5 rounded-lg btn-ghost text-[11px] font-semibold">Est. Panen</button>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-mono txt-muted px-1">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Rencana/SOP</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Kegiatan/Semprot</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-500"></span>Kas/Belanja</span>
+              <span class="inline-flex items-center gap-1"><strong class="text-sky-600 dark:text-sky-400">S</strong>=HSS</span>
+              <span class="inline-flex items-center gap-1"><strong class="txt-accent">T</strong>=HST</span>
+              <span class="inline-flex items-center gap-1"><strong class="text-purple-600 dark:text-purple-400">P</strong>=HSP</span>
+            </div>
+
+            <!-- Weekday Headers -->
+            <div class="grid grid-cols-7 gap-1.5 text-center text-[11px] font-bold uppercase txt-muted">
+              <div class="py-1 text-rose-500">Min</div>
+              <div class="py-1">Sen</div>
+              <div class="py-1">Sel</div>
+              <div class="py-1">Rab</div>
+              <div class="py-1">Kam</div>
+              <div class="py-1 txt-accent">Jum</div>
+              <div class="py-1">Sab</div>
+            </div>
+
+            <!-- Calendar Cells Grid -->
+            <div id="cal-grid-days" class="grid grid-cols-7 gap-1.5"></div>
+          </div>
+
+          <!-- RIGHT: SELECTED DATE DETAIL PANEL -->
+          <div id="cal-detail-panel" class="paper-panel rounded-2xl p-5 lg:col-span-5 space-y-4">
+            <!-- Selected Date Header -->
+            <div class="border-b border-hair pb-3.5 space-y-2.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div id="cal-sel-date-long" class="font-display font-extrabold text-lg txt-main leading-tight">Pilih Tanggal</div>
+                  <div id="cal-sel-weton-line" class="text-xs font-mono txt-ochre font-semibold mt-0.5">-</div>
+                </div>
+                <span id="cal-sel-iso" class="px-2 py-1 rounded-lg paper-sub font-mono text-[11px] txt-muted">YYYY-MM-DD</span>
+              </div>
+
+              <!-- HSS / HST / HSP Badges for Selected Date -->
+              <div class="grid grid-cols-3 gap-2 font-mono text-center">
+                <div class="p-2 rounded-xl paper-sub">
+                  <div class="text-[10px] txt-muted">HSS (Semai)</div>
+                  <div id="cal-sel-hss" class="text-xs sm:text-sm font-bold text-sky-600 dark:text-sky-400">-</div>
+                </div>
+                <div class="p-2 rounded-xl paper-sub">
+                  <div class="text-[10px] txt-muted">HST (Tanam)</div>
+                  <div id="cal-sel-hst" class="text-xs sm:text-sm font-bold txt-accent">-</div>
+                </div>
+                <div class="p-2 rounded-xl paper-sub">
+                  <div class="text-[10px] txt-muted">HSP (Polinasi)</div>
+                  <div id="cal-sel-hsp" class="text-xs sm:text-sm font-bold text-purple-600 dark:text-purple-400">-</div>
+                </div>
+              </div>
+
+              <!-- Quick Action Buttons for Selected Date -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                <button onclick="openCalEntryModal('RENCANA', selectedCalendarDate)" class="admin-only py-1.5 px-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 txt-ochre text-[11px] font-bold transition">+ Rencana</button>
+                <button onclick="openCalEntryModal('KEGIATAN', selectedCalendarDate)" class="admin-only py-1.5 px-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 txt-accent text-[11px] font-bold transition">+ Kegiatan</button>
+                <button onclick="openLogSemprotForDate(selectedCalendarDate)" class="admin-only py-1.5 px-2 rounded-lg paper-sub hover:brightness-95 txt-sec text-[11px] font-bold transition">+ Semprot</button>
+                <button onclick="openTransaksiForDate(selectedCalendarDate)" class="admin-only py-1.5 px-2 rounded-lg paper-sub hover:brightness-95 txt-sec text-[11px] font-bold transition">+ Belanja</button>
+              </div>
+            </div>
+
+            <!-- Section 1: Rencana & SOP Terjadwal -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-extrabold uppercase tracking-wider txt-ochre flex items-center gap-1.5">
+                  <i class="fa-solid fa-list-check"></i> Rencana &amp; SOP Terjadwal
+                </h4>
+                <span id="cal-plan-count" class="font-mono text-[10px] txt-muted">0 item</span>
+              </div>
+              <div id="cal-sel-plans" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Section 2: Update Kegiatan & Realisasi -->
+            <div class="space-y-2 pt-2 border-t border-hair">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-extrabold uppercase tracking-wider txt-accent flex items-center gap-1.5">
+                  <i class="fa-solid fa-circle-check"></i> Update Kegiatan, Semprot &amp; Kas
+                </h4>
+                <span id="cal-done-count" class="font-mono text-[10px] txt-muted">0 item</span>
+              </div>
+              <div id="cal-sel-activities" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -1676,6 +1917,9 @@
     <button onclick="switchTab('dashboard')" data-btab="dashboard" class="bottom-nav-item active flex flex-col items-center justify-center py-1 rounded-xl text-[10px]">
       <i class="fa-solid fa-chart-pie text-base mb-0.5"></i><span>Laporan</span>
     </button>
+    <button onclick="switchTab('kalender')" data-btab="kalender" class="bottom-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-[10px]">
+      <i class="fa-solid fa-calendar-days text-base mb-0.5"></i><span>Kalender</span>
+    </button>
     <button onclick="switchTab('varietas')" data-btab="varietas" class="bottom-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-[10px]">
       <i class="fa-solid fa-leaf text-base mb-0.5"></i><span>Populasi</span>
     </button>
@@ -1685,14 +1929,65 @@
     <button onclick="switchTab('iot')" data-btab="iot" class="bottom-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-[10px]">
       <i class="fa-solid fa-tower-broadcast text-base mb-0.5"></i><span>IoT</span>
     </button>
-    <button onclick="switchTab('pengaturan')" data-btab="pengaturan" class="bottom-nav-item flex flex-col items-center justify-center py-1 rounded-xl text-[10px]">
-      <i class="fa-solid fa-sliders text-base mb-0.5"></i><span>Sistem</span>
-    </button>
   </nav>
 
   <!-- =========================================================================
        MODALS
        ========================================================================= -->
+
+  <!-- Modal Tambah / Edit Rencana & Update Kegiatan Kalender -->
+  <div id="modal-cal-entry" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="paper-panel rounded-2xl max-w-md w-full p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="modal-cal-title" class="font-display font-extrabold text-lg txt-main">Tambah Catatan Kalender</h3>
+        <button onclick="closeModal('modal-cal-entry')" class="txt-muted hover:txt-main"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <form onsubmit="saveCalEntry(event)" class="space-y-3">
+        <input type="hidden" id="cal-entry-id" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold txt-sec mb-1">Tanggal</label>
+            <input type="date" id="cal-entry-date" required class="field-input w-full px-3 py-2 text-sm font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold txt-sec mb-1">Jam (Opsional)</label>
+            <input type="time" id="cal-entry-time" class="field-input w-full px-3 py-2 text-sm font-mono" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold txt-sec mb-1">Status / Jenis</label>
+            <select id="cal-entry-tipe" class="field-input w-full px-3 py-2 text-sm font-semibold">
+              <option value="RENCANA">Rencana (Belum Selesai)</option>
+              <option value="KEGIATAN">Update Kegiatan (Selesai)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold txt-sec mb-1">Kategori</label>
+            <select id="cal-entry-kat" class="field-input w-full px-3 py-2 text-sm">
+              <option value="Perawatan">Perawatan / Pangkas</option>
+              <option value="Semai">Semai (HSS)</option>
+              <option value="Tanam">Pindah Tanam (HST)</option>
+              <option value="Polinasi">Polinasi (HSP)</option>
+              <option value="Nutrisi">Nutrisi / PPM</option>
+              <option value="Semprot">Penyemprotan</option>
+              <option value="Panen">Panen / Grading</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold txt-sec mb-1">Judul Rencana / Kegiatan</label>
+          <input type="text" id="cal-entry-judul" required placeholder="Contoh: Pangkas tunas air ruas 1-8 &amp; cek tali lanjaran" class="field-input w-full px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold txt-sec mb-1">Catatan Lapangan</label>
+          <textarea id="cal-entry-catatan" rows="3" placeholder="Detail kondisi daun, akar, cuaca, atau hasil pengamatan..." class="field-input w-full px-3 py-2 text-sm"></textarea>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl btn-primary text-sm font-bold">Simpan ke Kalender</button>
+      </form>
+    </div>
+  </div>
 
   <!-- Modal Login -->
   <div id="modal-login" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -2087,11 +2382,20 @@
       },
       cycle: {
         nama: 'Siklus #02',
+        tanggalSemai: '2026-10-02',
         tanggalTanam: '2026-10-14',
+        tanggalPolinasi: '2026-11-06',
         hst: 38,
         targetHst: 65,
         faktorKoreksi: 100
       },
+      calendarEntries: [
+        { id: 'ce1', tanggal: '2026-10-02', jam: '07:30', tipe: 'KEGIATAN', kategori: 'Semai', judul: 'Semai Benih New Ceria & Kirani di Rockwool 5x5 cm', catatan: '100 benih disemai, kelembapan rockwool dijaga.', selesai: true },
+        { id: 'ce2', tanggal: '2026-10-14', jam: '16:00', tipe: 'KEGIATAN', kategori: 'Tanam', judul: 'Pindah Tanam 100 Pohon ke 6 Jalur Pipa NFT 3"', catatan: '2 pohon/lubang, setpoint awal ESP32 850 PPM.', selesai: true },
+        { id: 'ce3', tanggal: '2026-11-06', jam: '07:00', tipe: 'KEGIATAN', kategori: 'Polinasi', judul: 'Polinasi Manual Bunga Betina Ruas 9-12', catatan: 'Dilakukan pagi hari 07:00-09:00 cuaca cerah.', selesai: true },
+        { id: 'ce4', tanggal: '2026-11-27', jam: '08:00', tipe: 'RENCANA', kategori: 'Perawatan', judul: 'Cek Netting Buah & Kekuatan Tali Lanjaran', catatan: 'Pastikan buah tergantung aman dan penutup lubang pipa rapat dari hujan.', selesai: false },
+        { id: 'ce5', tanggal: '2026-12-15', jam: '06:30', tipe: 'RENCANA', kategori: 'Nutrisi', judul: 'Flushing Total Tandon Air Murni (H-3 Panen)', catatan: 'Kuras AB Mix & ganti air baku <150 PPM agar rasa manis bersih.', selesai: false }
+      ],
       iotSettings: {
         mqttTopic: 'scada_melon/febry/telemetri',
         mqttCmdTopic: 'scada_melon/febry/perintah',
@@ -2172,7 +2476,8 @@
           abMixRecipe: Array.isArray(p.abMixRecipe) ? p.abMixRecipe : [],
           sprayProtocol: Array.isArray(p.sprayProtocol) ? p.sprayProtocol : [],
           transaksi: Array.isArray(p.transaksi) ? p.transaksi : [],
-          logSemprot: Array.isArray(p.logSemprot) ? p.logSemprot : []
+          logSemprot: Array.isArray(p.logSemprot) ? p.logSemprot : [],
+          calendarEntries: Array.isArray(p.calendarEntries) ? p.calendarEntries : JSON.parse(JSON.stringify(DEFAULT_DATA.calendarEntries))
         };
       } catch (e) {
         return JSON.parse(JSON.stringify(DEFAULT_DATA));
@@ -2473,7 +2778,8 @@
               abMixRecipe: Array.isArray(remoteData.abMixRecipe) ? remoteData.abMixRecipe : [],
               sprayProtocol: Array.isArray(remoteData.sprayProtocol) ? remoteData.sprayProtocol : [],
               transaksi: Array.isArray(remoteData.transaksi) ? remoteData.transaksi : [],
-              logSemprot: Array.isArray(remoteData.logSemprot) ? remoteData.logSemprot : []
+              logSemprot: Array.isArray(remoteData.logSemprot) ? remoteData.logSemprot : [],
+              calendarEntries: Array.isArray(remoteData.calendarEntries) ? remoteData.calendarEntries : []
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
             syncProfileAndInstalasiInputs();
@@ -2603,11 +2909,14 @@
         },
         cycle: {
           nama: 'Siklus Baru',
+          tanggalSemai: '',
           tanggalTanam: '',
+          tanggalPolinasi: '',
           hst: 0,
           targetHst: 65,
           faktorKoreksi: 0
         },
+        calendarEntries: [],
         iotSettings: keepIot,
         bgSettings: keepBg,
         varietas: [],
@@ -2824,6 +3133,7 @@
         toggleSidebar();
       }
       if (tabName === 'export') renderExportPDF();
+      if (tabName === 'kalender') renderCalendarView();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -2904,6 +3214,7 @@
       saveState();
       renderRoleUI();
       recalculateAll();
+      renderCalendarView();
       showToast('Beralih ke Mode Pengunjung (Read-Only).');
     }
 
@@ -3114,6 +3425,7 @@
       renderAnalisisTable(s);
       renderRekomendasi(s);
       updateFinancialAndVarietyCharts(s);
+      updateSidebarAndCalendarPhases();
     }
 
     // =========================================================================
@@ -3702,6 +4014,7 @@
       });
       saveState();
       renderLogSemprot();
+      renderCalendarView();
       closeModal('modal-log-semprot');
       e.target.reset();
       showToast('Log aplikasi dicatat.');
@@ -4311,6 +4624,528 @@
       a.click();
       URL.revokeObjectURL(url);
       showToast('Log telemetri CSV berhasil diunduh.');
+    }
+
+
+    // =========================================================================
+    // 11B. FETCH HTTP LOKAL (MELON.LOCAL)
+    // =========================================================================
+    async function fetchFromMelonLocal() {
+      const url = (document.getElementById('iot-endpoint-url').value || '').trim() || DEFAULT_DATA.iotSettings.endpointUrl;
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        applyEsp32Payload(data, 'HTTP_LOCAL');
+        showToast('Data berhasil ditarik dari ' + url);
+      } catch (err) {
+        showToast('HTTP lokal tidak terjangkau (CORS/beda Wi-Fi). Jalur MQTT EMQX tetap aktif.');
+      }
+    }
+
+    // =========================================================================
+    // 11C. KALENDER PERIODE TANAM (HSS • HST • HSP) & KALENDER JAWA (WETON)
+    // =========================================================================
+    const HARI_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const PASARAN_JAWA = ['Legi', 'Pahing', 'Pon', 'Wage', 'Kliwon'];
+    const NEPTU_HARI = [5, 4, 3, 7, 8, 6, 9]; // Min=5, Sen=4, Sel=3, Rab=7, Kam=8, Jum=6, Sab=9
+    const NEPTU_PASARAN = [5, 9, 7, 4, 8];   // Legi=5, Pahing=9, Pon=7, Wage=4, Kliwon=8
+
+    let calViewYear = new Date().getFullYear();
+    let calViewMonth = new Date().getMonth();
+    let selectedCalendarDate = getTodayISO();
+
+    function getTodayISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function parseIsoLocal(iso) {
+      if (!iso || typeof iso !== 'string') return null;
+      const parts = iso.split('-').map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return null;
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function addDaysISO(iso, days) {
+      const d = parseIsoLocal(iso);
+      if (!d) return '';
+      d.setDate(d.getDate() + days);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function diffDaysISO(targetIso, baseIso) {
+      const t = parseIsoLocal(targetIso);
+      const b = parseIsoLocal(baseIso);
+      if (!t || !b) return null;
+      const utcT = Date.UTC(t.getFullYear(), t.getMonth(), t.getDate());
+      const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+      return Math.round((utcT - utcB) / 86400000);
+    }
+
+    function getJavaneseDateInfo(iso) {
+      const d = parseIsoLocal(iso) || new Date();
+      // Referensi historis valid: 17 Agustus 1945 = Jumat Legi (Pasaran index 0)
+      const utcTarget = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      const utcRef = Date.UTC(1945, 7, 17);
+      const diff = Math.round((utcTarget - utcRef) / 86400000);
+      const pasaranIdx = ((diff % 5) + 5) % 5;
+      const hariIdx = d.getDay();
+      const hari = HARI_ID[hariIdx];
+      const pasaran = PASARAN_JAWA[pasaranIdx];
+      const neptu = NEPTU_HARI[hariIdx] + NEPTU_PASARAN[pasaranIdx];
+      return {
+        hari,
+        pasaran,
+        weton: `${hari} ${pasaran}`,
+        neptu,
+        masehiLong: `${hari}, ${d.getDate()} ${BULAN_ID[d.getMonth()]} ${d.getFullYear()}`
+      };
+    }
+
+    function getPhaseCountersForDate(iso) {
+      const c = appState.cycle || {};
+      const hss = c.tanggalSemai ? diffDaysISO(iso, c.tanggalSemai) : null;
+      const hst = c.tanggalTanam ? diffDaysISO(iso, c.tanggalTanam) : null;
+      const hsp = c.tanggalPolinasi ? diffDaysISO(iso, c.tanggalPolinasi) : null;
+      return { hss, hst, hsp };
+    }
+
+    function getFruitPhaseLabel(hsp, hst, targetHst) {
+      if (hst !== null && hst >= targetHst) return 'Siap Panen / Pascapanen';
+      if (hst !== null && hst >= targetHst - 3) return 'Flushing Air Murni';
+      if (hsp === null || hsp < 0) return 'Belum Polinasi';
+      if (hsp <= 7) return 'Pembentukan Bakal Buah';
+      if (hsp <= 18) return 'Pembesaran Cepat';
+      if (hsp <= 32) return 'Pembentukan Jaring (Netting)';
+      return 'Pematangan & Pengisian Brix';
+    }
+
+    function getAutoSopForDate(iso) {
+      const { hss, hst, hsp } = getPhaseCountersForDate(iso);
+      const targetHst = Math.max(1, safeNum(appState.cycle.targetHst, 65));
+      const sops = [];
+
+      if (hss === 0) sops.push({ tag: '0 HSS', title: 'Hari Semai Benih', desc: 'Semai benih di media rockwool, jaga kelembapan & sirkulasi udara.' });
+      if (hst === 0) sops.push({ tag: '0 HST', title: 'Pindah Tanam ke Sistem ' + getActiveSystemShortName(), desc: 'Pindah bibit ke jalur pipa, atur nutrisi awal 800-900 PPM.' });
+      if (hsp === 0) sops.push({ tag: '0 HSP', title: 'Mulai Polinasi / Penyerbukan', desc: 'Lakukan polinasi pagi hari (07:00-09:30) pada bunga betina ruas optimal.' });
+      if (hst !== null && hst === targetHst - 3) sops.push({ tag: `${hst} HST`, title: 'Wajib Flushing Air Murni (H-3 Panen)', desc: 'Kuras tandon AB Mix dan ganti air baku (<150 PPM) agar rasa buah manis bersih.' });
+      if (hst !== null && hst === targetHst) sops.push({ tag: `${hst} HST`, title: 'Target Hari Panen Utama', desc: 'Cek kematangan tangkai, bobot buah, dan kadar gula (Brix) sebelum panen.' });
+
+      // Parse PHI / Batas Stop Semprot
+      const phiMatch = String(appState.sprayConfig.phi || '').match(/\d+/);
+      if (phiMatch && hst === parseInt(phiMatch[0], 10)) {
+        sops.push({ tag: `${hst} HST`, title: 'Batas Akhir Semprot Pestisida (PHI)', desc: 'Hentikan aplikasi pestisida kimia setelah hari ini hingga panen.' });
+      }
+
+      // Auto-match jadwal HST dari Protokol Semprot Aktif
+      if (hst !== null && hst > 0) {
+        (appState.sprayProtocol || []).forEach(sp => {
+          const nums = (String(sp.jadwal || '').match(/\d+/g) || []).map(Number);
+          if (nums.includes(hst)) {
+            sops.push({
+              tag: `${hst} HST • ${sp.kategori}`,
+              title: `Jadwal Semprot: ${sp.nama} (${sp.dosis})`,
+              desc: `Target: ${sp.target || '-'} (Otomatis dari Protokol Semprot)`
+            });
+          }
+        });
+      }
+      return sops;
+    }
+
+    function updateSidebarAndCalendarPhases() {
+      const todayIso = getTodayISO();
+      const todayJawa = getJavaneseDateInfo(todayIso);
+      const { hss, hst, hsp } = getPhaseCountersForDate(todayIso);
+      const targetHst = Math.max(1, safeNum(appState.cycle.targetHst, 65));
+
+      const elHss = document.getElementById('sidebar-hss-val');
+      const elHst = document.getElementById('sidebar-hst-val');
+      const elHsp = document.getElementById('sidebar-hsp-val');
+      const elWeton = document.getElementById('sidebar-weton-today');
+
+      if (elHss) elHss.textContent = hss !== null && hss >= 0 ? hss : '-';
+      if (elHst) elHst.textContent = safeNum(appState.cycle.hst, 0);
+      if (elHsp) elHsp.textContent = hsp !== null && hsp >= 0 ? hsp : '-';
+      if (elWeton) elWeton.textContent = `${todayJawa.weton} • Neptu ${todayJawa.neptu}`;
+
+      // Update Tab Kalender header cards
+      const cWeton = document.getElementById('cal-today-weton');
+      if (cWeton) {
+        cWeton.textContent = todayJawa.weton;
+        document.getElementById('cal-today-neptu').textContent = `Neptu ${todayJawa.neptu}`;
+        document.getElementById('cal-today-masehi').textContent = todayJawa.masehiLong;
+
+        document.getElementById('cal-tgl-semai').value = appState.cycle.tanggalSemai || '';
+        document.getElementById('cal-tgl-tanam').value = appState.cycle.tanggalTanam || '';
+        document.getElementById('cal-tgl-polinasi').value = appState.cycle.tanggalPolinasi || '';
+
+        document.getElementById('cal-now-hss').textContent = hss !== null && hss >= 0 ? `${hss} HSS` : 'Belum Semai';
+        document.getElementById('cal-now-hst').textContent = hst !== null && hst >= 0 ? `${hst} / ${targetHst} HST` : `${safeNum(appState.cycle.hst, 0)} HST`;
+        document.getElementById('cal-now-hsp').textContent = hsp !== null && hsp >= 0 ? `${hsp} HSP` : 'Pra-Polinasi';
+
+        document.getElementById('cal-semai-weton').textContent = appState.cycle.tanggalSemai
+          ? `Semai: ${getJavaneseDateInfo(appState.cycle.tanggalSemai).weton}`
+          : 'Atur tanggal semai benih';
+
+        const estPanenIso = appState.cycle.tanggalTanam ? addDaysISO(appState.cycle.tanggalTanam, targetHst) : '';
+        document.getElementById('cal-tanam-weton').textContent = estPanenIso
+          ? `Est. Panen: ${estPanenIso} (${getJavaneseDateInfo(estPanenIso).weton})`
+          : 'Atur tanggal pindah tanam';
+
+        document.getElementById('cal-polinasi-phase').textContent = `Fase: ${getFruitPhaseLabel(hsp, hst, targetHst)}`;
+      }
+
+      const calTab = document.getElementById('tab-kalender');
+      if (calTab && !calTab.classList.contains('hidden')) {
+        renderCalendarView();
+      }
+    }
+
+    function updateMilestoneDatesFromCal() {
+      appState.cycle.tanggalSemai = document.getElementById('cal-tgl-semai').value || '';
+      appState.cycle.tanggalTanam = document.getElementById('cal-tgl-tanam').value || '';
+      appState.cycle.tanggalPolinasi = document.getElementById('cal-tgl-polinasi').value || '';
+      if (appState.cycle.tanggalTanam) {
+        const calcHst = diffDaysISO(getTodayISO(), appState.cycle.tanggalTanam);
+        if (calcHst !== null && calcHst >= 0) appState.cycle.hst = Math.min(180, calcHst);
+      }
+      saveState();
+      recalculateAll();
+      renderCalendarView();
+      showToast('Tanggal Semai/Tanam/Polinasi & fase HSS/HST/HSP diperbarui.');
+    }
+
+    function syncHstFromToday() {
+      if (!appState.cycle.tanggalTanam) {
+        showToast('Isi Tanggal Tanam terlebih dahulu untuk menghitung HST otomatis.');
+        return;
+      }
+      const calcHst = diffDaysISO(getTodayISO(), appState.cycle.tanggalTanam);
+      appState.cycle.hst = Math.max(0, Math.min(180, calcHst || 0));
+      saveState();
+      recalculateAll();
+      renderCalendarView();
+      showToast(`Umur siklus disinkronkan otomatis ke ${appState.cycle.hst} HST.`);
+    }
+
+    function changeCalendarMonth(delta) {
+      calViewMonth += delta;
+      if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+      if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+      renderCalendarView();
+    }
+
+    function jumpCalendarTo(target) {
+      let iso = getTodayISO();
+      if (target === 'tanam' && appState.cycle.tanggalTanam) iso = appState.cycle.tanggalTanam;
+      else if (target === 'panen' && appState.cycle.tanggalTanam) {
+        iso = addDaysISO(appState.cycle.tanggalTanam, Math.max(1, safeNum(appState.cycle.targetHst, 65)));
+      }
+      const d = parseIsoLocal(iso) || new Date();
+      calViewYear = d.getFullYear();
+      calViewMonth = d.getMonth();
+      selectedCalendarDate = iso;
+      renderCalendarView();
+    }
+
+    function selectCalendarDate(iso) {
+      selectedCalendarDate = iso;
+      const d = parseIsoLocal(iso);
+      if (d && (d.getMonth() !== calViewMonth || d.getFullYear() !== calViewYear)) {
+        calViewYear = d.getFullYear();
+        calViewMonth = d.getMonth();
+      }
+      renderCalendarView();
+    }
+
+    function renderCalendarView() {
+      const grid = document.getElementById('cal-grid-days');
+      if (!grid) return;
+
+      document.getElementById('cal-month-title').textContent = `${BULAN_ID[calViewMonth]} ${calViewYear}`;
+
+      const firstDay = new Date(calViewYear, calViewMonth, 1);
+      const startDow = firstDay.getDay();
+      const startDate = new Date(calViewYear, calViewMonth, 1 - startDow);
+      const todayIso = getTodayISO();
+      const targetHst = Math.max(1, safeNum(appState.cycle.targetHst, 65));
+
+      let cellsHtml = '';
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const isOther = d.getMonth() !== calViewMonth;
+        const isToday = iso === todayIso;
+        const isSel = iso === selectedCalendarDate;
+
+        const jawa = getJavaneseDateInfo(iso);
+        const { hss, hst, hsp } = getPhaseCountersForDate(iso);
+
+        const entries = (appState.calendarEntries || []).filter(e => e.tanggal === iso);
+        const logs = (appState.logSemprot || []).filter(l => l.tanggal === iso);
+        const trxs = (appState.transaksi || []).filter(t => t.tanggal === iso);
+        const sops = getAutoSopForDate(iso);
+
+        const hasPlan = entries.some(e => e.tipe === 'RENCANA' && !e.selesai) || sops.length > 0;
+        const hasDone = entries.some(e => e.tipe === 'KEGIATAN' || e.selesai) || logs.length > 0;
+        const hasTrx = trxs.length > 0;
+
+        // Compact phase badge
+        let phaseBadge = '';
+        if (hst !== null && hst === targetHst) {
+          phaseBadge = `<span class="px-1 rounded bg-amber-500 text-white text-[9px] font-mono font-bold">★PN</span>`;
+        } else if (hsp !== null && hsp >= 0 && (hst === null || hst <= targetHst + 5)) {
+          phaseBadge = `<span class="text-[9px] font-mono font-bold text-purple-600 dark:text-purple-400">P${hsp}</span>`;
+        } else if (hst !== null && hst >= 0 && hst <= targetHst + 5) {
+          phaseBadge = `<span class="text-[9px] font-mono font-bold txt-accent">T${hst}</span>`;
+        } else if (hss !== null && hss >= 0 && (hst === null || hst < 0)) {
+          phaseBadge = `<span class="text-[9px] font-mono font-bold text-sky-600 dark:text-sky-400">S${hss}</span>`;
+        }
+
+        const cls = [
+          'cal-cell rounded-xl p-1.5 sm:p-2 min-h-[68px] sm:min-h-[78px] flex flex-col justify-between text-left cursor-pointer',
+          isOther ? 'other-month' : '',
+          isToday ? 'is-today' : '',
+          isSel ? 'selected' : ''
+        ].join(' ');
+
+        cellsHtml += `
+          <button type="button" onclick="selectCalendarDate('${iso}')" class="${cls}">
+            <div class="flex items-start justify-between gap-0.5 w-full">
+              <span class="font-display font-bold text-xs sm:text-sm ${d.getDay() === 0 ? 'text-rose-500' : 'txt-main'}">${d.getDate()}</span>
+              ${phaseBadge}
+            </div>
+            <div class="text-[9px] sm:text-[10px] font-mono txt-muted truncate w-full">${jawa.pasaran}</div>
+            <div class="flex items-center gap-1 mt-0.5 h-2">
+              ${hasPlan ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>' : ''}
+              ${hasDone ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>' : ''}
+              ${hasTrx ? '<span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>' : ''}
+            </div>
+          </button>
+        `;
+      }
+      grid.innerHTML = cellsHtml;
+      renderCalendarDayDetail(selectedCalendarDate);
+    }
+
+    function renderCalendarDayDetail(iso) {
+      const jawa = getJavaneseDateInfo(iso);
+      const { hss, hst, hsp } = getPhaseCountersForDate(iso);
+
+      document.getElementById('cal-sel-date-long').textContent = jawa.masehiLong;
+      document.getElementById('cal-sel-weton-line').textContent = `Kalender Jawa: ${jawa.weton} (Neptu ${jawa.neptu})`;
+      document.getElementById('cal-sel-iso').textContent = iso;
+
+      document.getElementById('cal-sel-hss').textContent = hss !== null && hss >= 0 ? `${hss} HSS` : '-';
+      document.getElementById('cal-sel-hst').textContent = hst !== null && hst >= 0 ? `${hst} HST` : '-';
+      document.getElementById('cal-sel-hsp').textContent = hsp !== null && hsp >= 0 ? `${hsp} HSP` : '-';
+
+      const entries = (appState.calendarEntries || []).filter(e => e.tanggal === iso);
+      const sops = getAutoSopForDate(iso);
+      const logs = (appState.logSemprot || []).filter(l => l.tanggal === iso);
+      const trxs = (appState.transaksi || []).filter(t => t.tanggal === iso);
+
+      const pendingPlans = entries.filter(e => e.tipe === 'RENCANA' && !e.selesai);
+      const completedActivities = entries.filter(e => e.tipe === 'KEGIATAN' || e.selesai);
+
+      // 1. Render Rencana & SOP
+      const plansBox = document.getElementById('cal-sel-plans');
+      const totalPlans = sops.length + pendingPlans.length;
+      document.getElementById('cal-plan-count').textContent = `${totalPlans} item`;
+
+      if (totalPlans === 0) {
+        plansBox.innerHTML = `<div class="p-3 rounded-xl paper-sub text-xs txt-muted text-center">Tidak ada rencana / SOP terjadwal pada tanggal ini.</div>`;
+      } else {
+        let pHtml = '';
+        sops.forEach(s => {
+          pHtml += `
+            <div class="p-3 rounded-xl paper-sub border-l-4 border-l-amber-500 space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold txt-main">${escapeHtml(s.title)}</span>
+                <span class="px-1.5 py-0.5 rounded bg-amber-500/15 txt-ochre font-mono text-[10px] font-bold shrink-0">${escapeHtml(s.tag)}</span>
+              </div>
+              <p class="text-[11px] txt-sec leading-relaxed">${escapeHtml(s.desc)}</p>
+            </div>
+          `;
+        });
+        pendingPlans.forEach(e => {
+          const adminBtns = appState.isAdmin ? `
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="toggleCalEntryDone('${escapeHtml(e.id)}')" title="Tandai Selesai" class="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 txt-accent text-[10px] font-bold"><i class="fa-solid fa-check"></i> Selesai</button>
+              <button onclick="deleteCalEntry('${escapeHtml(e.id)}')" title="Hapus" class="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>` : '';
+          pHtml += `
+            <div class="p-3 rounded-xl paper-sub border-l-4 border-l-amber-400 space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded paper-panel font-mono text-[10px] font-bold txt-ochre">${escapeHtml(e.kategori)}</span>
+                    ${e.jam ? `<span class="font-mono text-[10px] txt-muted">${escapeHtml(e.jam)}</span>` : ''}
+                  </div>
+                  <div class="text-xs font-bold txt-main mt-1">${escapeHtml(e.judul)}</div>
+                </div>
+                ${adminBtns}
+              </div>
+              ${e.catatan ? `<p class="text-[11px] txt-sec">${escapeHtml(e.catatan)}</p>` : ''}
+            </div>
+          `;
+        });
+        plansBox.innerHTML = pHtml;
+      }
+
+      // 2. Render Update Kegiatan, Log Semprot & Transaksi
+      const actBox = document.getElementById('cal-sel-activities');
+      const totalDone = completedActivities.length + logs.length + trxs.length;
+      document.getElementById('cal-done-count').textContent = `${totalDone} item`;
+
+      if (totalDone === 0) {
+        actBox.innerHTML = `<div class="p-3 rounded-xl paper-sub text-xs txt-muted text-center">Belum ada update kegiatan, log semprot, atau kas pada tanggal ini.</div>`;
+      } else {
+        let aHtml = '';
+        completedActivities.forEach(e => {
+          const adminBtns = appState.isAdmin ? `
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openCalEntryModal('${escapeHtml(e.tipe)}', '${iso}', '${escapeHtml(e.id)}')" class="p-1 rounded-lg paper-panel txt-sec text-[11px]"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteCalEntry('${escapeHtml(e.id)}')" class="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 text-[11px]"><i class="fa-solid fa-trash"></i></button>
+            </div>` : '';
+          aHtml += `
+            <div class="p-3 rounded-xl paper-sub border-l-4 border-l-emerald-500 space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/15 txt-accent font-mono text-[10px] font-bold">${escapeHtml(e.kategori)}</span>
+                    ${e.jam ? `<span class="font-mono text-[10px] txt-muted">${escapeHtml(e.jam)}</span>` : ''}
+                  </div>
+                  <div class="text-xs font-bold txt-main mt-1">${escapeHtml(e.judul)}</div>
+                </div>
+                ${adminBtns}
+              </div>
+              ${e.catatan ? `<p class="text-[11px] txt-sec">${escapeHtml(e.catatan)}</p>` : ''}
+            </div>
+          `;
+        });
+
+        logs.forEach(l => {
+          aHtml += `
+            <div class="p-3 rounded-xl paper-sub border-l-4 border-l-teal-500 space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold txt-main"><i class="fa-solid fa-spray-can-sparkles txt-accent mr-1"></i>${escapeHtml(l.jenis)}</span>
+                <span class="font-mono text-[10px] font-bold txt-accent">${escapeHtml(l.hst)} HST</span>
+              </div>
+              <div class="text-[11px] font-medium txt-main">${escapeHtml(l.bahan)}</div>
+              ${l.catatan ? `<div class="text-[11px] txt-muted">${escapeHtml(l.catatan)}</div>` : ''}
+            </div>
+          `;
+        });
+
+        trxs.forEach(t => {
+          aHtml += `
+            <div class="p-3 rounded-xl paper-sub border-l-4 border-l-sky-500 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-bold txt-main truncate"><i class="fa-solid fa-wallet text-sky-500 mr-1"></i>${escapeHtml(t.keterangan)}</div>
+                <div class="text-[10px] txt-muted">${escapeHtml(t.kategori)} • ${escapeHtml(t.tipe)}</div>
+              </div>
+              <span class="font-mono text-xs font-bold ${t.tipe === 'MASUK' ? 'txt-accent' : 'txt-main'} shrink-0">${formatRupiah(t.nominal)}</span>
+            </div>
+          `;
+        });
+        actBox.innerHTML = aHtml;
+      }
+    }
+
+    function openCalEntryModal(defaultTipe = 'RENCANA', dateIso = null, editId = null) {
+      if (!appState.isAdmin) { openModal('modal-login'); return; }
+      const title = document.getElementById('modal-cal-title');
+      if (editId) {
+        const item = (appState.calendarEntries || []).find(x => x.id === editId);
+        if (!item) return;
+        title.textContent = 'Edit Catatan Kalender';
+        document.getElementById('cal-entry-id').value = item.id;
+        document.getElementById('cal-entry-date').value = item.tanggal;
+        document.getElementById('cal-entry-time').value = item.jam || '';
+        document.getElementById('cal-entry-tipe').value = item.tipe;
+        document.getElementById('cal-entry-kat').value = item.kategori;
+        document.getElementById('cal-entry-judul').value = item.judul;
+        document.getElementById('cal-entry-catatan').value = item.catatan || '';
+      } else {
+        title.textContent = defaultTipe === 'KEGIATAN' ? 'Tambah Update Kegiatan Selesai' : 'Tambah Rencana Kegiatan';
+        document.getElementById('cal-entry-id').value = '';
+        document.getElementById('cal-entry-date').value = dateIso || selectedCalendarDate || getTodayISO();
+        document.getElementById('cal-entry-time').value = '';
+        document.getElementById('cal-entry-tipe').value = defaultTipe;
+        document.getElementById('cal-entry-kat').value = 'Perawatan';
+        document.getElementById('cal-entry-judul').value = '';
+        document.getElementById('cal-entry-catatan').value = '';
+      }
+      openModal('modal-cal-entry');
+    }
+
+    function saveCalEntry(e) {
+      e.preventDefault();
+      const id = document.getElementById('cal-entry-id').value;
+      const tipe = document.getElementById('cal-entry-tipe').value;
+      const tanggal = document.getElementById('cal-entry-date').value;
+      const payload = {
+        id: id || ('ce_' + Date.now()),
+        tanggal,
+        jam: document.getElementById('cal-entry-time').value || '',
+        tipe,
+        kategori: document.getElementById('cal-entry-kat').value,
+        judul: document.getElementById('cal-entry-judul').value.trim(),
+        catatan: document.getElementById('cal-entry-catatan').value.trim(),
+        selesai: tipe === 'KEGIATAN'
+      };
+      if (!Array.isArray(appState.calendarEntries)) appState.calendarEntries = [];
+      if (id) {
+        const idx = appState.calendarEntries.findIndex(x => x.id === id);
+        if (idx !== -1) appState.calendarEntries[idx] = payload;
+      } else {
+        appState.calendarEntries.unshift(payload);
+      }
+      selectedCalendarDate = tanggal;
+      saveState();
+      renderCalendarView();
+      closeModal('modal-cal-entry');
+      showToast('Catatan kalender berhasil disimpan.');
+    }
+
+    function toggleCalEntryDone(id) {
+      if (!appState.isAdmin) return;
+      const item = (appState.calendarEntries || []).find(x => x.id === id);
+      if (!item) return;
+      item.selesai = true;
+      item.tipe = 'KEGIATAN';
+      saveState();
+      renderCalendarView();
+      showToast(`"${item.judul}" ditandai selesai.`);
+    }
+
+    function deleteCalEntry(id) {
+      if (!appState.isAdmin) return;
+      appState.calendarEntries = (appState.calendarEntries || []).filter(x => x.id !== id);
+      saveState();
+      renderCalendarView();
+      showToast('Catatan kalender dihapus.');
+    }
+
+    function openLogSemprotForDate(iso) {
+      openLogSemprotModal();
+      if (iso) {
+        document.getElementById('log-tanggal').value = iso;
+        const { hst } = getPhaseCountersForDate(iso);
+        if (hst !== null && hst >= 0) document.getElementById('log-hst').value = hst;
+      }
+    }
+
+    function openTransaksiForDate(iso) {
+      openTransaksiModal();
+      if (iso) document.getElementById('trx-tanggal').value = iso;
     }
 
     // =========================================================================
